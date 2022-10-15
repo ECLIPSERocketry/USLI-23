@@ -55,6 +55,21 @@ Dm = 60;                                                                    % Di
 th = 0.079;                                                                 % Wall Thickness (inches)
 di = 3.843;                                                                 % Inner Diameter (inches)
 
+Ln = 16.5;                                                                  % inches
+d = 4;                                                                      % inches
+df = 4;                                                                     % inches
+dr = 4;                                                                     % inches
+Lt = 0;
+Xp = 0;
+Cr = 9;                                                                     % inches
+Ct = 3;                                                                     % inches
+S = 4;                                                                      % inches
+Lf = sqrt(2.5^2 + S^2);                                                     % inches
+R = d/2;                                                                    % inches
+Xr = 5.5;                                                                   % inches
+Xb = 78.5;                                                                  % inches
+Nfins = 4;
+
 
 % Simulation 1 data--------------------------------------------------------
 
@@ -136,6 +151,31 @@ ma2S = ma2*ozts;                                                            % Ai
 ma1sbS = ma1sb*ozts;                                                        % Mass of airframe 1, with switch band machined onto it (slug)
 mSm = [mnS;ma1sbS;ma2S];                                                    % Mass Matrix (slugs)
 msm = [mn;ma1sb;ma2];                                                       % Mass Matrix (oz)
+
+
+% Barrowman Approximation for Center of Pressure---------------------------
+
+Cnn = 2;                                                                    % Nose cone terms
+
+Xn = 0.466*Ln;                                                              % Ogive -> Xn = 0.466*Ln;
+                                                                            % Cone -> Xn = .666*Ln;
+
+Cnt = 2*((dr/d)^2-(dr/d)^2);                                                % Conical Transition Term
+Xt = Xp + Lt/3*(1+(1-df/dr)/(1-(df/dr)^2));
+
+Cnf = (1+R/(S+R))*((4*Nfins*(S/d)^2)/(1+sqrt(1+(2*Lf/(Cr+Ct))^2)));         % Fin Terms
+Xf = Xb + Xr/3*(Cr+2*Ct)/(Cr+Ct)+1/6*((Cr+Ct)-(Cr*Ct)/(Cr+Ct));
+
+Cnr = Cnn + Cnt + Cnf;                                                      % Finding Center of Pressure
+
+                                                                            % Xbar = (Cnn*Xn + Cnt*Xt+ Cnf*Xf)/Cnr
+                                                                            % No transition
+
+Xbar = (Cnn*Xn + Cnf*Xf)/Cnr;                                               % inches
+
+Xbarsimulated = 69.177;                                                     % OpenRocket value in inches
+
+percentDifference = (Xbar - Xbarsimulated)/((Xbar + Xbarsimulated))*200;
 
 
 % Apogee Calculator Based on Nakka's Simplification------------------------
@@ -373,6 +413,9 @@ writematrix(pv',filename,'Sheet',1,'Range','N14')
 writematrix(Ohoop',filename,'Sheet',1,'Range','O14')
 writematrix(Olong',filename,'Sheet',1,'Range','P14')
 
+writecell({'Center of Pressure','Length From Front End [in]'},...           % Center of Pressure
+    filename,'Sheet',1,'Range','I26')
+writematrix(Xbar,filename,'Sheet',1,'Range','J27')
 
 % Simulation data excel exporting----------------------------------------
 
@@ -407,9 +450,14 @@ writematrix(simDrf_avg,filename,'Sheet',2,'Range','G20')
                                                                             % Kinetic Energy
 writematrix('Simulation Kinetic Energy',filename,'Sheet',2,'Range','B26')
 
+writecell({'Simulation Center of Pressure',...                              % Center of Pressure
+    'Length From Front End [in]'},filename,'Sheet',2,'Range','F26')
+writematrix(Xbarsimulated,filename,'Sheet',2,'Range','G27')
+
 writecell({'Section','Mass [oz]'},filename,'Sheet',2,'Range','C27')
 writecell(keSub,filename,'Sheet',2,'Range','C28')
 writematrix(msm,filename,'Sheet',2,'Range','D28')
+
                                                                             % Simulation 1
 writecell(keTitle,filename,'Sheet',2,'Range','C32')
 writematrix(ws,filename,'Sheet',2,'Range','C33')
@@ -446,6 +494,11 @@ writecell({'Wind Speed [mph]','Percent Difference of Drift Distance'}, ...
     filename,'Sheet',3,'Range','C11')
 writematrix(ws,filename,'Sheet',3,'Range','C12')
 writematrix(pd_drf,filename,'Sheet',3,'Range','D12')
+
+writecell({'Center of Pressure'},filename,'Sheet',3,'Range','B18')
+writecell({'Percent Difference of Center of Pressure'},filename,...
+    'Sheet',3,'Range','C19')
+writematrix(percentDifference,filename,'Sheet',3,'Range','C20')
 
 
 % Nakka Output-------------------------------------------------------------
